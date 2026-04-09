@@ -45,10 +45,12 @@ def main():
     # API 映射表
     api_map = {
         "morning": "./py/cctv.py",     # 9点前
-        "afternoon": "./cc/mtn.py",    # 9点后
-        "special": "./py/special.py",  # 特殊情况
+        "afternoon": "./api_py/Xvd.py",    # 9点后
+        "special": "./api_py/Xvd.py",  # 特殊情况
         "default": "./py/cctv.py"      # 默认
     }
+    
+  
     
     # 1. 获取路由 key
     route_key = get_route_key()
