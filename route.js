@@ -43,8 +43,8 @@ async function main() {
     // API 映射表
     const apiMap = {
         "morning": "./py/cctv.py",     // 9点前
-        "afternoon": "./ff/te1.json",    // 9点后
-        "special": "./ff/te7.json",  // 特殊情况
+        "afternoon": "./api_py/Xvd.py",    // 9点后
+        "special": "./ff/te1.json",  // 特殊情况
         "default": "./py/cctv.py"      // 默认
     };
     
