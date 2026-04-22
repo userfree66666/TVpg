@@ -16,7 +16,7 @@ function init(extend) {
 function home() {
     return JSON.stringify({
         class: [
-            { type_name: "📖 迦南诗歌", type_id: "jiana" },
+            { type_name: "📖 999迦南诗歌", type_id: "jiana" },
             { type_name: "🎵 音乐排行", type_id: "yypy" },
             { type_name: "🙏 赞美诗歌", type_id: "zanmei" },
             { type_name: "📺 央视栏目", type_id: "cctv" }
