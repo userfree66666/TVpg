@@ -1,5 +1,5 @@
-// ==================== 完整版爬虫 - 可读取GitHub文件 ====================
-// 版本: 10.0.0
+// ==================== TVBox兼容版爬虫 ====================
+// 版本: 12.0.0 - 完全兼容TVBox和应用中心
 
 const header = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -8,34 +8,44 @@ const header = {
 // ==================== 工具函数 ====================
 
 /**
- * 网络请求 - 兼容你的应用中心
+ * 网络请求 - 完全兼容TVBox格式
  */
 function fetchSync(url) {
     try {
         console.log("请求URL: " + url);
+        
+        // 直接使用TVBox风格的req调用
         let response = req(url, {
             'method': 'GET',
             'headers': header
         });
         
-        // 兼容多种返回格式
-        let content = null;
+        console.log("response类型: " + typeof response);
+        
+        // TVBox的req返回的就是content字符串
         if (typeof response === 'string') {
-            content = response;
-        } else if (response && typeof response.content === 'string') {
-            content = response.content;
-        } else if (response && typeof response.body === 'string') {
-            content = response.body;
-        } else if (response && typeof response.text === 'string') {
-            content = response.text;
+            console.log("直接返回字符串，长度: " + response.length);
+            return response;
         }
         
-        if (content) {
-            console.log("获取内容成功，长度: " + content.length);
-        } else {
-            console.log("获取内容失败");
+        // 如果是对象，尝试获取content
+        if (response && typeof response === 'object') {
+            if (response.content) {
+                console.log("返回response.content，长度: " + response.content.length);
+                return response.content;
+            }
+            if (response.body) {
+                console.log("返回response.body，长度: " + response.body.length);
+                return response.body;
+            }
+            if (response.text) {
+                console.log("返回response.text，长度: " + response.text.length);
+                return response.text;
+            }
         }
-        return content;
+        
+        console.log("无法解析response: " + JSON.stringify(response));
+        return null;
     } catch (error) {
         console.log("请求异常: " + error);
         return null;
@@ -62,16 +72,16 @@ function getFileType(url) {
 // ==================== 核心功能 ====================
 
 function init(extend) {
-    console.log("爬虫初始化成功");
+    console.log("爬虫初始化成功 - TVBox兼容版");
     if (extend) {
-        console.log("extend参数: " + extend.substring(0, 100));
+        console.log("extend: " + extend);
     }
 }
 
 function home() {
     return JSON.stringify({
         class: [
-            { type_name: "📖 🟣迦南诗歌", type_id: "迦南诗歌.txt" },
+            { type_name: "📖 12迦南诗歌", type_id: "迦南诗歌.txt" },
             { type_name: "🎵 音乐排行", type_id: "yypy.txt" },
             { type_name: "🙏 赞美诗歌", type_id: "zm.txt" },
             { type_name: "📺 央视栏目", type_id: "cctv" }
@@ -85,14 +95,15 @@ function homeVod() {
 }
 
 /**
- * 分类页面 - 读取GitHub文件
+ * 分类页面 - 完全兼容TVBox
  */
 function category(tid, pg, filter, extend) {
     try {
         pg = parseInt(pg) || 1;
         
-        console.log("========================================");
-        console.log("分类ID: " + tid);
+        console.log("========== category ==========");
+        console.log("tid: " + tid);
+        console.log("pg: " + pg);
         
         if (pg >= 2) {
             return JSON.stringify({ list: [], page: pg, pagecount: 1, limit: 90, total: 0 });
@@ -101,12 +112,14 @@ function category(tid, pg, filter, extend) {
         let baseUrl = "https://raw.githubusercontent.com/mannys888/frist/refs/heads/main/";
         let videos = [];
         
-        // 处理央视栏目（不需要请求文件）
+        // 央视栏目（不需要请求文件）
         if (tid === "cctv") {
-            console.log("加载央视栏目数据");
+            console.log("加载央视栏目");
             let channels = [
                 "CCTV-1 综合", "CCTV-2 财经", "CCTV-3 综艺", "CCTV-4 中文国际",
-                "CCTV-5 体育", "CCTV-6 电影", "CCTV-7 国防军事", "CCTV-8 电视剧"
+                "CCTV-5 体育", "CCTV-6 电影", "CCTV-7 国防军事", "CCTV-8 电视剧",
+                "CCTV-9 纪录", "CCTV-10 科教", "CCTV-11 戏曲", "CCTV-12 社会与法",
+                "CCTV-13 新闻", "CCTV-14 少儿", "CCTV-15 音乐"
             ];
             for (let i = 0; i < channels.length; i++) {
                 videos.push({
@@ -117,49 +130,49 @@ function category(tid, pg, filter, extend) {
                 });
             }
         } 
-        // 处理其他分类（需要读取TXT文件）
         else {
+            // 其他分类：请求TXT文件
             let fileName = tid;
-            // 确保文件名有.txt后缀
             if (!fileName.endsWith('.txt')) {
                 fileName = fileName + '.txt';
             }
             
             let fileUrl = baseUrl + fileName;
-            console.log("文件URL: " + fileUrl);
+            console.log("请求文件: " + fileUrl);
             
             let content = fetchSync(fileUrl);
             
-            if (content) {
+            if (content && content.length > 0) {
+                console.log("获取到内容，长度: " + content.length);
+                
                 let lines = content.split(/\r?\n/);
-                console.log("文件行数: " + lines.length);
+                console.log("总行数: " + lines.length);
                 
                 for (let i = 0; i < lines.length; i++) {
                     let line = lines[i];
                     if (!line || line.trim() === "") continue;
                     
                     // 解析格式: 标题,URL
-                    if (line.indexOf(',') > 0) {
-                        let parts = line.split(',');
-                        if (parts.length >= 2) {
-                            let title = parts[0].trim();
-                            let link = parts[1].trim();
-                            
-                            if (link && (link.indexOf('http') === 0 || link.indexOf('https') === 0)) {
-                                videos.push({
-                                    vod_id: link + "###music",
-                                    vod_name: title,
-                                    vod_pic: getMusicCover(title),
-                                    vod_remarks: getFileType(link)
-                                });
-                            }
+                    let commaIndex = line.indexOf(',');
+                    if (commaIndex > 0) {
+                        let title = line.substring(0, commaIndex).trim();
+                        let link = line.substring(commaIndex + 1).trim();
+                        
+                        if (link && (link.indexOf('http') === 0 || link.indexOf('https') === 0)) {
+                            videos.push({
+                                vod_id: link + "###music",
+                                vod_name: title,
+                                vod_pic: getMusicCover(title),
+                                vod_remarks: getFileType(link)
+                            });
+                            console.log("添加: " + title);
                         }
                     }
                 }
                 console.log("解析到 " + videos.length + " 条数据");
             } else {
-                console.log("文件请求失败，使用模拟数据");
-                // 如果文件请求失败，使用模拟数据
+                console.log("文件内容为空或请求失败");
+                // 使用模拟数据
                 for (let i = 1; i <= 5; i++) {
                     videos.push({
                         vod_id: "test" + i + "###music",
@@ -170,8 +183,6 @@ function category(tid, pg, filter, extend) {
                 }
             }
         }
-        
-        console.log("返回数据条数: " + videos.length);
         
         return JSON.stringify({
             list: videos,
@@ -214,6 +225,7 @@ function detail(vodId) {
             let vod = {
                 vod_id: videoId,
                 vod_name: "央视直播",
+                vod_pic: getMusicCover("cctv"),
                 vod_play_from: "央视直播",
                 vod_play_url: "直播流$" + playUrl
             };
