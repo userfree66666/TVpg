@@ -70,7 +70,7 @@ function init(extend) {
 function home() {
     return JSON.stringify({
         class: [
-            { type_name: "📖 迦南诗歌", type_id: "迦南诗歌" },
+            { type_name: "📖⑥⑥⑥迦南诗歌", type_id: "迦南诗歌" },
             { type_name: "🎵 音乐排行", type_id: "yypy" },
             { type_name: "🙏 赞美诗歌", type_id: "zm" },
             { type_name: "📺 央视栏目", type_id: "cctv" }
