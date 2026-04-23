@@ -98,7 +98,7 @@ function home() {
     try {
         let classes = [
             { type_name: "🎵 音乐排行", type_id: "yypy" },
-            { type_name: "📖 迦南诗歌", type_id: "迦南诗歌.txt" },
+            { type_name: "📖⑥迦南诗歌", type_id: "迦南诗歌.txt" },
             { type_name: "🙏 赞美诗歌", type_id: "zm" },
             { type_name: "📺 央视栏目", type_id: "TOPC" }
         ];
