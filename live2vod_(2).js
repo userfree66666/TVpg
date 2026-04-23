@@ -167,7 +167,7 @@ function parseExtConfig(extParam, basePath) {
     if (classes.length === 0) {
         console.log("[init] 未从 ext 解析到分类，使用默认分类");
         classes = [
-            { type_name: "📖 迦南诗歌", type_id: resolvePath("迦南诗歌.txt", defaultBasePath) },
+            { type_name: "📖🟣内🟣迦南诗歌", type_id: resolvePath("迦南诗歌.txt", defaultBasePath) },
             { type_name: "🎵 音乐排行", type_id: resolvePath("yypy.txt", defaultBasePath) },
             { type_name: "🙏 赞美诗歌", type_id: resolvePath("zm.txt", defaultBasePath) },
             { type_name: "📺 央视栏目", type_id: "cctv" }
