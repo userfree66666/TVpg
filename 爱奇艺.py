@@ -5,15 +5,12 @@ import time
 from base.spider import Spider
 
 class Spider(Spider):
-    """央视大全爬虫 - 支持栏目筛选、播放列表获取、原始hls_url播放"""
-
     def getName(self):
         return "央视大全"
 
     def init(self, extend=""):
-        print(f"============央视爬虫初始化 {extend}============")
-        self.cache = {}          # 简单缓存
-        # 筛选器配置（与JS版一致）
+        print(f"央视爬虫初始化，extend={extend}")
+        self.cache = {}
         self.filters_config = [
             {
                 "key": "cid", "name": "频道", "value": [
@@ -64,22 +61,21 @@ class Spider(Spider):
         ]
 
     def homeContent(self, filter):
-        """返回首页分类及筛选器配置"""
         result = {
             "class": [{"type_name": "央视大全", "type_id": "CCTV"}],
             "filters": {"CCTV": self.filters_config} if filter else {}
         }
+        print("homeContent返回:", result)
         return result
 
     def homeVideoContent(self):
-        """首页视频列表（空）"""
         return {"list": []}
 
     def _fetch_json(self, url, use_cache=True):
-        """封装请求返回JSON，支持缓存"""
         if use_cache and url in self.cache:
             return self.cache[url]
         try:
+            print(f"请求URL: {url}")
             resp = self.fetch(url, headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.54 Safari/537.36",
                 "Origin": "https://tv.cctv.com",
@@ -94,19 +90,14 @@ class Spider(Spider):
             return None
 
     def categoryContent(self, tid, pg, filter, extend):
-        """
-        获取栏目列表（支持筛选）
-        :param tid: 类型ID，固定为 "CCTV"
-        :param pg: 页码
-        :param filter: 筛选参数字典（包含 cid, fc, fl, year, month 等）
-        :param extend: 扩展参数（合并到 filter）
-        """
+        print(f"categoryContent调用: tid={tid}, pg={pg}, filter={filter}, extend={extend}")
         pg = int(pg) if pg else 1
         params = {}
         if filter:
             params.update(filter)
         if extend:
             params.update(extend)
+        print(f"合并后参数: {params}")
 
         # 构建请求参数
         query = {
@@ -120,40 +111,46 @@ class Spider(Spider):
         }
         url = "https://api.cntv.cn/lanmu/columnSearch?" + "&".join(f"{k}={v}" for k, v in query.items())
         data = self._fetch_json(url)
-        if not data or "response" not in data or "docs" not in data["response"]:
+        if not data:
+            print("未获取到数据")
+            return {"list": [], "page": pg, "pagecount": 0, "total": 0}
+        if "response" not in data or "docs" not in data["response"]:
+            print(f"数据结构异常: {data}")
             return {"list": [], "page": pg, "pagecount": 0, "total": 0}
 
         docs = data["response"]["docs"]
+        print(f"获取到 {len(docs)} 个栏目")
         videos = []
         year = params.get("year", "")
         month = params.get("month", "")
-        prefix = year + month   # 如 "202301"
+        prefix = year + month
 
         for vod in docs:
             last_video = vod.get("lastVIDE", {}).get("videoSharedCode", "")
             if not last_video:
                 last_video = "_"
-            # vod_id 格式: 年月###栏目名###lastVideo###栏目logo
-            vod_id = f"{prefix}###{vod.get('column_name', '')}###{last_video}###{vod.get('column_logo', '')}"
+            column_name = vod.get("column_name", "")
+            column_logo = vod.get("column_logo", "")
+            vod_id = f"{prefix}###{column_name}###{last_video}###{column_logo}"
             videos.append({
                 "vod_id": vod_id,
-                "vod_name": vod.get("column_name", ""),
-                "vod_pic": vod.get("column_logo", ""),
+                "vod_name": column_name,
+                "vod_pic": column_logo,
                 "vod_remarks": ""
             })
-
         total = data["response"].get("numFound", len(videos))
         pagecount = (total + 19) // 20
-        return {
+        result = {
             "list": videos,
             "page": pg,
             "pagecount": pagecount,
             "limit": 20,
             "total": total
         }
+        print(f"categoryContent返回列表数量: {len(videos)}")
+        return result
 
     def _get_raw_hls_url(self, pid):
-        """通过 pid 获取原始 hls_url"""
         if not pid:
             return None
         url = f"https://vdn.apps.cntv.cn/api/getHttpVideoInfo.do?pid={pid}"
@@ -163,31 +160,32 @@ class Spider(Spider):
         return None
 
     def detailContent(self, array):
-        """
-        获取栏目详情（包含该栏目下的视频播放列表）
-        :param array: vod_id 数组，例如 ["202301###新闻联播###123456###logo"]
-        """
+        if not array:
+            return {"list": []}
         vod_id = array[0]
+        print(f"detailContent请求: vod_id={vod_id}")
         parts = vod_id.split("###")
         if len(parts) < 4:
+            print(f"vod_id格式错误，应有4部分，实际{len(parts)}")
             return {"list": []}
         prefix, title, last_video, logo = parts[0], parts[1], parts[2], parts[3]
-
         if last_video == "_":
+            print("last_video为下划线，无有效视频")
             return {"list": []}
 
-        # 获取视频信息以得到 ctid（栏目ID）
         info_url = f"https://api.cntv.cn/video/videoinfoByGuid?guid={last_video}&serviceId=tvcctv"
         info = self._fetch_json(info_url)
         if not info or "ctid" not in info:
+            print("获取视频信息失败或缺少ctid")
             return {"list": []}
         topic_id = info["ctid"]
         channel = info.get("channel", "")
+        print(f"栏目ID: {topic_id}, 频道: {channel}")
 
-        # 获取栏目下的视频列表（最多100期）
         list_url = f"https://api.cntv.cn/NewVideo/getVideoListByColumn?id={topic_id}&d={prefix}&p=1&n=100&sort=desc&mode=0&serviceId=tvcctv&t=json"
         list_data = self._fetch_json(list_url)
         if not list_data or "data" not in list_data or "list" not in list_data["data"]:
+            print("获取视频列表失败")
             return {"list": []}
 
         video_list = []
@@ -195,14 +193,13 @@ class Spider(Spider):
             play_id = video.get("pid") or video.get("vid") or video.get("guid")
             if play_id:
                 video_list.append(f"{video.get('title', '')}${play_id}")
-
         if not video_list:
+            print("视频列表为空")
             return {"list": []}
+        print(f"获取到 {len(video_list)} 个视频")
 
-        # 获取第一集的原始 hls_url 用于备注（可选）
         first_pid = video_list[0].split("$")[1] if "$" in video_list[0] else ""
         debug_url = self._get_raw_hls_url(first_pid) or ""
-
         display_date = prefix if prefix else str(time.localtime().tm_year)
         vod = {
             "vod_id": vod_id,
@@ -211,30 +208,25 @@ class Spider(Spider):
             "type_name": channel,
             "vod_year": display_date,
             "vod_area": "",
-            "vod_remarks": debug_url,          # 第一集播放地址（调试用）
+            "vod_remarks": debug_url,
             "vod_actor": "",
-            "vod_director": topic_id,           # 存储 topicId
+            "vod_director": topic_id,
             "vod_content": "当前页面默认展示最新100期内容，可在分类页面选择年份和月份查看往期节目。",
             "vod_play_from": "CCTV",
-            "vod_play_url": "#".join(video_list)   # 格式: 标题$pid#标题$pid...
+            "vod_play_url": "#".join(video_list)
         }
         return {"list": [vod]}
 
     def searchContent(self, key, quick):
-        """搜索（暂未实现）"""
         return {"list": []}
 
     def playerContent(self, flag, id, vipFlags):
-        """
-        获取视频播放地址
-        :param flag: 标识（无用）
-        :param id: 视频 pid（来自播放列表中的 $ 后面的值）
-        :param vipFlags: VIP标识（无用）
-        """
+        print(f"播放请求: flag={flag}, id={id}")
         raw_url = self._get_raw_hls_url(id)
         if not raw_url:
+            print("获取播放地址失败")
             return {"parse": 0, "playUrl": "", "url": id}
-        # 返回播放信息，无需解析，直接使用原始url
+        print(f"获取到播放地址: {raw_url[:100]}...")
         return {
             "parse": 0,
             "playUrl": "",
@@ -245,20 +237,14 @@ class Spider(Spider):
             }
         }
 
-    # 以下为框架所需但本例暂无实际功能的占位
+    # 占位方法
     def isVideoFormat(self, url):
         pass
-
     def manualVideoCheck(self):
         pass
-
     def localProxy(self, param):
         return [200, "video/MP2T", "", ""]
 
-    # 配置（可选）
-    config = {
-        "player": {},
-        "filter": {}
-    }
+    config = {"player": {}, "filter": {}}
     header = {}
     cookies = None
