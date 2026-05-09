@@ -1,131 +1,87 @@
 #coding=utf-8
 #!/usr/bin/python
+import sys
+sys.path.append('..')
+from base.spider import Spider
 import json
 import time
-from base.spider import Spider
+import re
 
 class Spider(Spider):
     def getName(self):
         return "央视大全"
 
     def init(self, extend=""):
-        print(f"央视爬虫初始化，extend={extend}")
-        self.cache = {}
-        self.filters_config = [
-            {
-                "key": "cid", "name": "频道", "value": [
-                    {"n": "全部", "v": ""},
-                    {"n": "CCTV-1综合", "v": "EPGC1386744804340101"},
-                    {"n": "CCTV-2财经", "v": "EPGC1386744804340102"},
-                    {"n": "CCTV-3综艺", "v": "EPGC1386744804340103"},
-                    {"n": "CCTV-4中文国际", "v": "EPGC1386744804340104"},
-                    {"n": "CCTV-5体育", "v": "EPGC1386744804340107"},
-                    {"n": "CCTV-6电影", "v": "EPGC1386744804340108"},
-                    {"n": "CCTV-7国防军事", "v": "EPGC1386744804340109"},
-                    {"n": "CCTV-8电视剧", "v": "EPGC1386744804340110"},
-                    {"n": "CCTV-9纪录", "v": "EPGC1386744804340112"},
-                    {"n": "CCTV-10科教", "v": "EPGC1386744804340113"},
-                    {"n": "CCTV-11戏曲", "v": "EPGC1386744804340114"},
-                    {"n": "CCTV-12社会与法", "v": "EPGC1386744804340115"},
-                    {"n": "CCTV-13新闻", "v": "EPGC1386744804340116"},
-                    {"n": "CCTV-14少儿", "v": "EPGC1386744804340117"},
-                    {"n": "CCTV-15音乐", "v": "EPGC1386744804340118"},
-                    {"n": "CCTV-16奥林匹克", "v": "EPGC1634630207058998"},
-                    {"n": "CCTV-17农业农村", "v": "EPGC1563932742616872"},
-                    {"n": "CCTV-5+体育赛事", "v": "EPGC1468294755566101"}
-                ]
-            },
-            {
-                "key": "fc", "name": "分类", "value": [
-                    {"n": "全部", "v": ""},
-                    {"n": "新闻", "v": "新闻"}, {"n": "体育", "v": "体育"}, {"n": "综艺", "v": "综艺"},
-                    {"n": "健康", "v": "健康"}, {"n": "生活", "v": "生活"}, {"n": "科教", "v": "科教"},
-                    {"n": "经济", "v": "经济"}, {"n": "农业", "v": "农业"}, {"n": "法治", "v": "法治"},
-                    {"n": "军事", "v": "军事"}, {"n": "少儿", "v": "少儿"}, {"n": "动画", "v": "动画"},
-                    {"n": "纪实", "v": "纪实"}, {"n": "戏曲", "v": "戏曲"}, {"n": "音乐", "v": "音乐"},
-                    {"n": "影视", "v": "影视"}
-                ]
-            },
-            {
-                "key": "fl", "name": "字母", "value": [{"n": "全部", "v": ""}] +
-                           [{"n": l, "v": l} for l in "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z".split(",")]
-            },
-            {
-                "key": "year", "name": "年份", "value": [{"n": "全部", "v": ""}] +
-                           [{"n": str(2022 - i), "v": str(2022 - i)} for i in range(23)]
-            },
-            {
-                "key": "month", "name": "月份", "value": [{"n": "全部", "v": ""}] +
-                           [{"n": f"{i:02d}", "v": f"{i:02d}"} for i in range(1, 13)]
-            }
-        ]
+        print(f"央视爬虫初始化 {extend}")
+        # 可选缓存
+        self._cache = {}
+
+    def isVideoFormat(self, url):
+        pass
+
+    def manualVideoCheck(self):
+        pass
 
     def homeContent(self, filter):
         result = {
             "class": [{"type_name": "央视大全", "type_id": "CCTV"}],
-            "filters": {"CCTV": self.filters_config} if filter else {}
+            "filters": {}
         }
-        print("homeContent返回:", result)
+        if filter:
+            # 直接从 config 中取筛选器（已在类尾部定义）
+            result['filters'] = self.config.get('filter', {})
         return result
 
     def homeVideoContent(self):
         return {"list": []}
 
-    def _fetch_json(self, url, use_cache=True):
-        if use_cache and url in self.cache:
-            return self.cache[url]
-        try:
-            print(f"请求URL: {url}")
-            resp = self.fetch(url, headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.54 Safari/537.36",
-                "Origin": "https://tv.cctv.com",
-                "Referer": "https://tv.cctv.com/"
-            })
-            data = json.loads(resp.text)
-            if use_cache:
-                self.cache[url] = data
-            return data
-        except Exception as e:
-            print(f"请求失败: {url} - {e}")
-            return None
-
     def categoryContent(self, tid, pg, filter, extend):
-        print(f"categoryContent调用: tid={tid}, pg={pg}, filter={filter}, extend={extend}")
+        """tid 固定为 CCTV，pg 页码，filter 和 extend 合并为请求参数"""
         pg = int(pg) if pg else 1
+        
+        # 合并参数（前端筛选器传 filter，年月等可能来自 extend）
         params = {}
         if filter:
             params.update(filter)
         if extend:
             params.update(extend)
-        print(f"合并后参数: {params}")
-
-        # 构建请求参数
+        
+        # 处理年月前缀（用于 vod_id）
+        year = params.get('year', '')
+        month = params.get('month', '')
+        if year == '':
+            month = ''
+        prefix = year + month
+        
+        # 构建请求参数（严格按照接口要求）
         query = {
-            "fl": params.get("fl", ""),
-            "fc": params.get("fc", ""),
-            "cid": params.get("cid", ""),
+            "fl": params.get('fl', ''),
+            "fc": params.get('fc', ''),
+            "cid": params.get('cid', ''),
             "p": pg,
             "n": 20,
             "serviceId": "tvcctv",
             "t": "json"
         }
+        # 避免出现空值参数导致 URL 异常，但空值也可以保留
         url = "https://api.cntv.cn/lanmu/columnSearch?" + "&".join(f"{k}={v}" for k, v in query.items())
-        data = self._fetch_json(url)
-        if not data:
-            print("未获取到数据")
+        print(f"请求URL: {url}")  # 调试输出
+        
+        try:
+            resp = self.fetch(url, headers=self.header)
+            data = resp.json()
+        except Exception as e:
+            print(f"请求失败: {e}")
             return {"list": [], "page": pg, "pagecount": 0, "total": 0}
-        if "response" not in data or "docs" not in data["response"]:
-            print(f"数据结构异常: {data}")
+        
+        if not data or "response" not in data:
+            print("返回数据缺少 response 字段")
             return {"list": [], "page": pg, "pagecount": 0, "total": 0}
-
-        docs = data["response"]["docs"]
-        print(f"获取到 {len(docs)} 个栏目")
+        
+        docs = data["response"].get("docs", [])
         videos = []
-        year = params.get("year", "")
-        month = params.get("month", "")
-        prefix = year + month
-
         for vod in docs:
+            # 获取 lastVIDE 中的 videoSharedCode，缺失则设为 '_'
             last_video = vod.get("lastVIDE", {}).get("videoSharedCode", "")
             if not last_video:
                 last_video = "_"
@@ -138,69 +94,80 @@ class Spider(Spider):
                 "vod_pic": column_logo,
                 "vod_remarks": ""
             })
+        
         total = data["response"].get("numFound", len(videos))
         pagecount = (total + 19) // 20
-        result = {
+        return {
             "list": videos,
             "page": pg,
             "pagecount": pagecount,
             "limit": 20,
             "total": total
         }
-        print(f"categoryContent返回列表数量: {len(videos)}")
-        return result
 
     def _get_raw_hls_url(self, pid):
+        """通过 pid 获取原始 hls_url"""
         if not pid:
             return None
         url = f"https://vdn.apps.cntv.cn/api/getHttpVideoInfo.do?pid={pid}"
-        data = self._fetch_json(url)
-        if data and "hls_url" in data:
-            return data["hls_url"].strip()
+        try:
+            resp = self.fetch(url, headers=self.header)
+            data = resp.json()
+            if data and "hls_url" in data:
+                return data["hls_url"].strip()
+        except Exception as e:
+            print(f"获取播放地址失败: {e}")
         return None
 
     def detailContent(self, array):
         if not array:
             return {"list": []}
         vod_id = array[0]
-        print(f"detailContent请求: vod_id={vod_id}")
         parts = vod_id.split("###")
         if len(parts) < 4:
-            print(f"vod_id格式错误，应有4部分，实际{len(parts)}")
             return {"list": []}
         prefix, title, last_video, logo = parts[0], parts[1], parts[2], parts[3]
+        
         if last_video == "_":
-            print("last_video为下划线，无有效视频")
             return {"list": []}
-
+        
+        # 通过任意一期获取栏目 ctid
         info_url = f"https://api.cntv.cn/video/videoinfoByGuid?guid={last_video}&serviceId=tvcctv"
-        info = self._fetch_json(info_url)
-        if not info or "ctid" not in info:
-            print("获取视频信息失败或缺少ctid")
+        try:
+            info_resp = self.fetch(info_url, headers=self.header)
+            info = info_resp.json()
+            if not info or "ctid" not in info:
+                return {"list": []}
+            topic_id = info["ctid"]
+            channel = info.get("channel", "")
+        except Exception as e:
+            print(f"获取视频信息失败: {e}")
             return {"list": []}
-        topic_id = info["ctid"]
-        channel = info.get("channel", "")
-        print(f"栏目ID: {topic_id}, 频道: {channel}")
-
+        
+        # 获取栏目下视频列表（最多100）
         list_url = f"https://api.cntv.cn/NewVideo/getVideoListByColumn?id={topic_id}&d={prefix}&p=1&n=100&sort=desc&mode=0&serviceId=tvcctv&t=json"
-        list_data = self._fetch_json(list_url)
-        if not list_data or "data" not in list_data or "list" not in list_data["data"]:
-            print("获取视频列表失败")
+        try:
+            list_resp = self.fetch(list_url, headers=self.header)
+            list_data = list_resp.json()
+            if not list_data or "data" not in list_data or "list" not in list_data["data"]:
+                return {"list": []}
+        except Exception as e:
+            print(f"获取视频列表失败: {e}")
             return {"list": []}
-
+        
         video_list = []
         for video in list_data["data"]["list"]:
             play_id = video.get("pid") or video.get("vid") or video.get("guid")
             if play_id:
                 video_list.append(f"{video.get('title', '')}${play_id}")
+        
         if not video_list:
-            print("视频列表为空")
             return {"list": []}
-        print(f"获取到 {len(video_list)} 个视频")
-
+        
         first_pid = video_list[0].split("$")[1] if "$" in video_list[0] else ""
         debug_url = self._get_raw_hls_url(first_pid) or ""
-        display_date = prefix if prefix else str(time.localtime().tm_year)
+        display_date = prefix if prefix else time.strftime("%Y", time.localtime())
+        
         vod = {
             "vod_id": vod_id,
             "vod_name": f"{display_date} {title}",
@@ -221,30 +188,83 @@ class Spider(Spider):
         return {"list": []}
 
     def playerContent(self, flag, id, vipFlags):
-        print(f"播放请求: flag={flag}, id={id}")
         raw_url = self._get_raw_hls_url(id)
         if not raw_url:
-            print("获取播放地址失败")
             return {"parse": 0, "playUrl": "", "url": id}
-        print(f"获取到播放地址: {raw_url[:100]}...")
         return {
             "parse": 0,
             "playUrl": "",
             "url": raw_url,
-            "header": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.54 Safari/537.36",
-                "Referer": "https://tv.cctv.com/"
-            }
+            "header": self.header
         }
 
-    # 占位方法
-    def isVideoFormat(self, url):
-        pass
-    def manualVideoCheck(self):
-        pass
     def localProxy(self, param):
         return [200, "video/MP2T", "", ""]
 
-    config = {"player": {}, "filter": {}}
-    header = {}
-    cookies = None
+    # 配置：包含完整的筛选器定义
+    config = {
+        "player": {},
+        "filter": {
+            "CCTV": [
+                {
+                    "key": "cid", "name": "频道", "value": [
+                        {"n": "全部", "v": ""},
+                        {"n": "CCTV-1综合", "v": "EPGC1386744804340101"},
+                        {"n": "CCTV-2财经", "v": "EPGC1386744804340102"},
+                        {"n": "CCTV-3综艺", "v": "EPGC1386744804340103"},
+                        {"n": "CCTV-4中文国际", "v": "EPGC1386744804340104"},
+                        {"n": "CCTV-5体育", "v": "EPGC1386744804340107"},
+                        {"n": "CCTV-6电影", "v": "EPGC1386744804340108"},
+                        {"n": "CCTV-7国防军事", "v": "EPGC1386744804340109"},
+                        {"n": "CCTV-8电视剧", "v": "EPGC1386744804340110"},
+                        {"n": "CCTV-9纪录", "v": "EPGC1386744804340112"},
+                        {"n": "CCTV-10科教", "v": "EPGC1386744804340113"},
+                        {"n": "CCTV-11戏曲", "v": "EPGC1386744804340114"},
+                        {"n": "CCTV-12社会与法", "v": "EPGC1386744804340115"},
+                        {"n": "CCTV-13新闻", "v": "EPGC1386744804340116"},
+                        {"n": "CCTV-14少儿", "v": "EPGC1386744804340117"},
+                        {"n": "CCTV-15音乐", "v": "EPGC1386744804340118"},
+                        {"n": "CCTV-16奥林匹克", "v": "EPGC1634630207058998"},
+                        {"n": "CCTV-17农业农村", "v": "EPGC1563932742616872"},
+                        {"n": "CCTV-5+体育赛事", "v": "EPGC1468294755566101"}
+                    ]
+                },
+                {
+                    "key": "fc", "name": "分类", "value": [
+                        {"n": "全部", "v": ""},
+                        {"n": "新闻", "v": "新闻"}, {"n": "体育", "v": "体育"}, {"n": "综艺", "v": "综艺"},
+                        {"n": "健康", "v": "健康"}, {"n": "生活", "v": "生活"}, {"n": "科教", "v": "科教"},
+                        {"n": "经济", "v": "经济"}, {"n": "农业", "v": "农业"}, {"n": "法治", "v": "法治"},
+                        {"n": "军事", "v": "军事"}, {"n": "少儿", "v": "少儿"}, {"n": "动画", "v": "动画"},
+                        {"n": "纪实", "v": "纪实"}, {"n": "戏曲", "v": "戏曲"}, {"n": "音乐", "v": "音乐"},
+                        {"n": "影视", "v": "影视"}
+                    ]
+                },
+                {
+                    "key": "fl", "name": "字母", "value": [{"n": "全部", "v": ""}] +
+                        [{"n": c, "v": c} for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+                },
+                {
+                    "key": "year", "name": "年份", "value": [{"n": "全部", "v": ""}] +
+                        [{"n": str(y), "v": str(y)} for y in range(2022, 1999, -1)]
+                },
+                {
+                    "key": "month", "name": "月份", "value": [{"n": "全部", "v": ""}] +
+                        [{"n": f"{m:02d}", "v": f"{m:02d}"} for m in range(1, 13)]
+                }
+            ]
+        }
+    }
+
+    header = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.54 Safari/537.36",
+        "Origin": "https://tv.cctv.com",
+        "Referer": "https://tv.cctv.com/"
+    }
+
+
+if __name__ == "__main__":
+    sp = Spider()
+    # 简单测试
+    print(sp.homeContent(True))
+    print(sp.categoryContent("CCTV", 1, {}, {}))
