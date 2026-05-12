@@ -1,8 +1,14 @@
-{
-     "sources": [],
-     "global": {
-       "unlockVideos": [
-         { "title": "可以了①测试", "url": "https://vd4.bdstatic.com/mda-rarazgbzb8b3a2jw/hd/cae_h264/1737877951931253897/mda-rarazgbzb8b3a2jw.mp4?v_from_s=bdapp-landingpage-hnb" }
-       ]
-     }
-   }
+[
+  {
+    "title": "欢迎视频",
+    "url": "https://vd2.bdstatic.com/mda-saqw3cbzsetm0a67/576p/h264/1769375877735209281/mda-saqw3cbzsetm0a67.mp4?v_from_s=bdapp-landingpage-hna"
+  },
+  {
+    "title": "教程一",
+    "url": "https://vd2.bdstatic.com/mda-scf1gup69rpfkw66/hd/cae_h264/1773623333330938909/mda-scf1gup69rpfkw66.mp4?v_from_s=bdapp-landingpage-hna"
+  },
+  {
+    "title": "彩蛋",
+    "url": "https://vd2.bdstatic.com/mda-kmefvrspgbe43244/v1-cae/hd/mda-kmefvrspgbe43244.mp4?v_from_s=bdapp-landingpage-hna"
+  }
+]
