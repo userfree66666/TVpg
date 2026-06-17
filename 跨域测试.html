@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORS 代理可用性测试</title>
+    <title>央视 API CORS 代理测试</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -13,312 +13,329 @@
             color: #1e293b;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             background: white;
             border-radius: 24px;
-            padding: 30px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
         }
-        h1 { font-size: 1.8rem; margin-bottom: 6px; }
-        .sub { color: #64748b; margin-bottom: 20px; }
-        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
-        .btn {
-            padding: 10px 24px; border: none; border-radius: 40px;
-            font-weight: 600; font-size: 0.95rem; cursor: pointer;
-            background: #3b82f6; color: white; transition: 0.2s;
-        }
-        .btn:hover { background: #2563eb; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn.secondary { background: #64748b; }
-        .btn.secondary:hover { background: #475569; }
-        .proxy-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-            margin: 16px 0;
-        }
-        .proxy-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 16px;
-            background: #f8fafc;
-            transition: 0.2s;
-        }
-        .proxy-card h3 {
-            font-size: 1rem;
+        h1 {
+            font-size: 1.8rem;
             margin-bottom: 8px;
+        }
+        .sub {
+            color: #64748b;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+        .mode-group {
             display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 16px;
             align-items: center;
-            gap: 8px;
         }
-        .proxy-card .badge {
-            font-size: 0.7rem;
-            background: #e2e8f0;
-            padding: 2px 10px;
-            border-radius: 20px;
-            color: #334155;
-        }
-        .proxy-card .status {
-            font-size: 0.9rem;
-            margin: 6px 0;
-        }
-        .proxy-card .ok { color: #10b981; }
-        .proxy-card .err { color: #ef4444; }
-        .proxy-card .detail {
-            font-size: 0.75rem;
-            color: #475569;
-            background: #f1f5f9;
-            padding: 6px 8px;
-            border-radius: 8px;
-            margin-top: 6px;
-            word-break: break-all;
-            max-height: 80px;
-            overflow: auto;
-        }
-        .proxy-card .loading {
-            color: #3b82f6;
-        }
-        .proxy-card .test-btn {
-            margin-top: 10px;
-            padding: 4px 16px;
-            border: 1px solid #3b82f6;
-            background: transparent;
-            color: #3b82f6;
-            border-radius: 30px;
-            font-size: 0.8rem;
+        .mode-group label {
+            font-weight: 500;
             cursor: pointer;
+            padding: 8px 18px;
+            border-radius: 40px;
+            background: #e2e8f0;
+            transition: 0.2s;
+            user-select: none;
         }
-        .proxy-card .test-btn:hover {
+        .mode-group input[type="radio"] {
+            display: none;
+        }
+        .mode-group input[type="radio"]:checked + label {
             background: #3b82f6;
             color: white;
         }
-        .summary {
+        .mode-group input[type="radio"]:disabled + label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-right: 12px;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn.secondary {
+            background: #64748b;
+        }
+        .btn.secondary:hover { background: #475569; }
+        .status {
             background: #f1f5f9;
             padding: 12px 16px;
             border-radius: 12px;
             margin: 16px 0;
+            font-size: 0.95rem;
         }
-        .summary strong { color: #0f172a; }
-        pre {
+        .status .ok { color: #10b981; font-weight: 600; }
+        .status .err { color: #ef4444; font-weight: 600; }
+        .status .info { color: #3b82f6; }
+        .result-area {
             background: #0f172a;
             color: #e2e8f0;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 16px;
+            border-radius: 16px;
             overflow: auto;
-            max-height: 200px;
-            font-size: 12px;
-            line-height: 1.5;
+            max-height: 550px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.6;
             white-space: pre-wrap;
-            word-break: break-all;
+            word-break: break-word;
         }
-        .footer {
-            margin-top: 20px;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 16px;
+        .result-area .summary {
+            color: #94a3b8;
+            margin-bottom: 12px;
+        }
+        .result-area .highlight {
+            color: #fbbf24;
+        }
+        .result-area .error {
+            color: #f87171;
+        }
+        .meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 12px 0 16px;
+        }
+        .meta-item {
+            background: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+        .meta-item strong { color: #0f172a; }
+        .empty-msg {
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .proxy-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .proxy-input input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 30px;
             font-size: 0.9rem;
         }
-        .footer code {
-            background: #e2e8f0;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+        .proxy-input input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .proxy-input label {
+            font-weight: 500;
+            color: #334155;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            .btn { width: 100%; margin-bottom: 8px; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🌐 CORS 代理可用性测试</h1>
-    <p class="sub">测试多个公共 CORS 代理能否成功转发央视 API 请求。<br>点击「全部测试」或单个代理的「测试」按钮，结果会实时显示。</p>
+    <h1>📡 央视 API 跨域测试（代理对比）</h1>
+    <p class="sub">测试央视 API 是否可访问，对比「直连」和「CORS 代理」两种方式。</p>
 
-    <div class="btn-group">
-        <button id="testAllBtn" class="btn">🚀 全部测试</button>
+    <!-- 模式切换 -->
+    <div class="mode-group">
+        <input type="radio" name="mode" id="modeDirect" value="direct" checked>
+        <label for="modeDirect">🔗 直连（无代理）</label>
+        <input type="radio" name="mode" id="modeProxy" value="proxy">
+        <label for="modeProxy">🚀 CORS 代理</label>
+    </div>
+
+    <!-- 代理地址自定义 -->
+    <div class="proxy-input" id="proxySettings" style="display: none;">
+        <label for="proxyUrl">代理地址：</label>
+        <input type="text" id="proxyUrl" value="https://cors-anywhere.herokuapp.com/" placeholder="例如 https://cors-anywhere.herokuapp.com/">
+        <span style="font-size:0.8rem; color:#64748b;">（代理会将请求转发，绕过跨域）</span>
+    </div>
+
+    <div>
+        <button id="testBtn" class="btn">🚀 发起测试</button>
         <button id="clearBtn" class="btn secondary">🗑️ 清空结果</button>
     </div>
 
-    <div id="proxyGrid" class="proxy-grid"></div>
+    <div class="meta">
+        <span class="meta-item"><strong>API</strong><br>https://api.cntv.cn/lanmu/columnSearch</span>
+        <span class="meta-item"><strong>参数</strong><br>fl=&fc=&cid=&p=1&n=20</span>
+        <span class="meta-item"><strong>请求头</strong><br>Referer: https://tv.cctv.com/<br>User-Agent: Mozilla/5.0</span>
+    </div>
 
-    <div id="summary" class="summary" style="display:none;"></div>
+    <div id="status" class="status">⏳ 等待测试...</div>
 
-    <div class="footer">
-        <p>✅ 测试通过的代理可配置到爬虫的 <code>PROXY_LIST</code> 中（优先放前面）。</p>
-        <p>💡 如果所有代理都失败，请检查网络环境或尝试自建代理。</p>
+    <div id="result" class="result-area">
+        <span class="empty-msg">暂无数据，点击测试按钮</span>
     </div>
 </div>
 
 <script>
     (function() {
-        // ========== 目标 API（央视栏目接口） ==========
-        const TARGET_URL = 'https://api.cntv.cn/lanmu/columnSearch?fl=&fc=&cid=&p=1&n=20&serviceId=tvcctv&t=json';
-
-        // ========== 代理列表（按优先级排序） ==========
-        const PROXY_LIST = [
-            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
-            { name: 'CorsProxy.io', url: 'https://corsproxy.io/?' },
-            { name: 'CorsAnywhere', url: 'https://cors-anywhere.herokuapp.com/' },
-            // 可自行增删，注意拼接方式
-        ];
-
-        // ========== DOM 引用 ==========
-        const grid = document.getElementById('proxyGrid');
-        const summaryDiv = document.getElementById('summary');
-        const testAllBtn = document.getElementById('testAllBtn');
+        const testBtn = document.getElementById('testBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const proxySettings = document.getElementById('proxySettings');
+        const proxyUrlInput = document.getElementById('proxyUrl');
+        const modeDirect = document.getElementById('modeDirect');
+        const modeProxy = document.getElementById('modeProxy');
 
-        // ========== 构建代理卡片 ==========
-        function renderCards() {
-            grid.innerHTML = '';
-            PROXY_LIST.forEach((proxy, index) => {
-                const card = document.createElement('div');
-                card.className = 'proxy-card';
-                card.id = `card-${index}`;
-                card.innerHTML = `
-                    <h3>
-                        <span>${proxy.name}</span>
-                        <span class="badge">${proxy.url}</span>
-                    </h3>
-                    <div class="status" id="status-${index}">⏳ 未测试</div>
-                    <div class="detail" id="detail-${index}">点击「测试」按钮</div>
-                    <button class="test-btn" data-index="${index}">▶️ 测试</button>
-                `;
-                grid.appendChild(card);
-            });
+        const API_URL = 'https://api.cntv.cn/lanmu/columnSearch?fl=&fc=&cid=&p=1&n=20&serviceId=tvcctv&t=json';
+
+        // 显示/隐藏代理地址输入
+        function toggleProxySettings() {
+            proxySettings.style.display = modeProxy.checked ? 'flex' : 'none';
         }
+        modeDirect.addEventListener('change', toggleProxySettings);
+        modeProxy.addEventListener('change', toggleProxySettings);
+        toggleProxySettings();
 
-        // ========== 测试单个代理 ==========
-        async function testProxy(index) {
-            const proxy = PROXY_LIST[index];
-            const statusEl = document.getElementById(`status-${index}`);
-            const detailEl = document.getElementById(`detail-${index}`);
-            const btn = document.querySelector(`.test-btn[data-index="${index}"]`);
-
-            if (!statusEl || !detailEl) return;
-
-            // 禁用按钮，显示加载
-            btn.disabled = true;
-            statusEl.innerHTML = '<span class="loading">⏳ 测试中...</span>';
-            detailEl.textContent = '请求中...';
-
-            // 构建代理 URL
-            let proxyUrl = proxy.url;
-            let finalUrl;
-            if (proxyUrl.includes('{url}')) {
-                finalUrl = proxyUrl.replace(/\{url\}/g, encodeURIComponent(TARGET_URL));
-            } else if (proxyUrl.endsWith('=') || proxyUrl.endsWith('?')) {
-                finalUrl = proxyUrl + encodeURIComponent(TARGET_URL);
-            } else {
-                // 默认直接拼接（可能不通用，但保留）
-                finalUrl = proxyUrl + TARGET_URL;
-            }
-
-            const start = Date.now();
-            try {
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', finalUrl, false);
-                xhr.setRequestHeader('Referer', 'https://tv.cctv.com/');
-                xhr.setRequestHeader('User-Agent', 'Mozilla/5.0');
-                xhr.send();
-                const elapsed = Date.now() - start;
-                const status = xhr.status;
-                const content = xhr.responseText || '';
-
-                if (status >= 200 && status < 300) {
-                    // 尝试解析 JSON
-                    let jsonOk = false;
-                    try {
-                        JSON.parse(content);
-                        jsonOk = true;
-                    } catch(e) {}
-
-                    if (jsonOk) {
-                        statusEl.innerHTML = `<span class="ok">✅ 成功 (${status}) - ${elapsed}ms</span>`;
-                        // 显示部分数据
-                        const preview = content.length > 200 ? content.slice(0, 200) + '...' : content;
-                        detailEl.textContent = `响应预览: ${preview}`;
-                    } else {
-                        statusEl.innerHTML = `<span class="err">⚠️ 返回非JSON (${status}) - ${elapsed}ms</span>`;
-                        detailEl.textContent = `响应内容（前200字符）: ${content.slice(0, 200)}`;
-                    }
-                } else {
-                    statusEl.innerHTML = `<span class="err">❌ 失败 (${status}) - ${elapsed}ms</span>`;
-                    detailEl.textContent = `响应内容: ${content.slice(0, 200)}`;
-                }
-            } catch (e) {
-                statusEl.innerHTML = `<span class="err">💥 请求异常</span>`;
-                detailEl.textContent = `错误: ${e.message}`;
-            } finally {
-                btn.disabled = false;
-                updateSummary();
-            }
-        }
-
-        // ========== 更新汇总信息 ==========
-        function updateSummary() {
-            const cards = document.querySelectorAll('.proxy-card');
-            let ok = 0, total = cards.length;
-            cards.forEach(card => {
-                const statusEl = card.querySelector('.status');
-                if (statusEl && statusEl.innerHTML.includes('✅')) ok++;
-            });
-            if (ok > 0) {
-                summaryDiv.style.display = 'block';
-                summaryDiv.innerHTML = `<strong>✅ 可用的代理:</strong> ${ok} / ${total} 个通过。可优先使用这些。`;
-            } else {
-                summaryDiv.style.display = 'block';
-                summaryDiv.innerHTML = `<strong>⚠️ 暂无代理通过。</strong> 请检查网络或尝试其他代理地址。`;
-            }
-        }
-
-        // ========== 全部测试 ==========
-        async function testAll() {
-            testAllBtn.disabled = true;
-            testAllBtn.textContent = '⏳ 测试中...';
-            for (let i = 0; i < PROXY_LIST.length; i++) {
-                await testProxy(i);
-                // 加一点延迟避免请求过频
-                await new Promise(r => setTimeout(r, 200));
-            }
-            testAllBtn.disabled = false;
-            testAllBtn.textContent = '🔄 全部测试';
-        }
-
-        // ========== 清空 ==========
-        function clearAll() {
-            document.querySelectorAll('.proxy-card').forEach((card, index) => {
-                const statusEl = document.getElementById(`status-${index}`);
-                const detailEl = document.getElementById(`detail-${index}`);
-                if (statusEl) statusEl.innerHTML = '⏳ 未测试';
-                if (detailEl) detailEl.textContent = '点击「测试」按钮';
-            });
-            summaryDiv.style.display = 'none';
-        }
-
-        // ========== 事件绑定 ==========
-        function bindEvents() {
-            // 单个测试按钮（事件委托）
-            grid.addEventListener('click', function(e) {
-                const btn = e.target.closest('.test-btn');
-                if (!btn) return;
-                const index = parseInt(btn.dataset.index);
-                if (!isNaN(index)) testProxy(index);
-            });
-
-            testAllBtn.addEventListener('click', testAll);
-            clearBtn.addEventListener('click', clearAll);
-        }
-
-        // ========== 初始化 ==========
-        renderCards();
-        bindEvents();
-        // 页面加载后自动执行全部测试（方便快速查看）
-        window.addEventListener('load', function() {
-            setTimeout(testAll, 300);
+        // 清空结果
+        clearBtn.addEventListener('click', function() {
+            resultDiv.innerHTML = '<span class="empty-msg">已清空</span>';
+            statusDiv.innerHTML = '⏳ 等待测试...';
         });
 
-        // 暴露手动测试函数到控制台
-        window.testProxy = testProxy;
-        window.testAll = testAll;
-        console.log('💡 可在控制台运行 testAll() 或 testProxy(索引) 进行测试');
+        // 测试按钮
+        testBtn.addEventListener('click', async function() {
+            const useProxy = modeProxy.checked;
+            const proxyBase = proxyUrlInput.value.trim() || 'https://cors-anywhere.herokuapp.com/';
+            let finalUrl = API_URL;
+            let modeText = '直连';
+
+            if (useProxy) {
+                // 如果代理地址不以 / 结尾，添加 /
+                let base = proxyBase.endsWith('/') ? proxyBase : proxyBase + '/';
+                // 移除 API_URL 开头的 https://，因为代理通常需要完整 URL
+                finalUrl = base + API_URL;
+                modeText = 'CORS 代理 (' + base + ')';
+            }
+
+            // 禁用按钮
+            testBtn.disabled = true;
+            testBtn.textContent = '⏳ 请求中...';
+            statusDiv.innerHTML = `⏳ 正在通过 <strong>${modeText}</strong> 请求...`;
+            resultDiv.innerHTML = '<span class="empty-msg">加载中...</span>';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(finalUrl, {
+                    headers: {
+                        'Referer': 'https://tv.cctv.com/',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+                const elapsed = Date.now() - startTime;
+
+                const statusCode = response.status;
+                const statusText = response.statusText;
+                const contentType = response.headers.get('content-type') || '';
+
+                // 读取响应文本
+                const rawText = await response.text();
+                let jsonData = null;
+                let parseError = null;
+                try {
+                    jsonData = JSON.parse(rawText);
+                } catch (e) {
+                    parseError = e.message;
+                }
+
+                // 状态显示
+                let statusHtml = '';
+                if (response.ok) {
+                    statusHtml = `<span class="ok">✅ 请求成功 (${statusCode} ${statusText})</span>`;
+                } else {
+                    statusHtml = `<span class="err">❌ 请求失败 (${statusCode} ${statusText})</span>`;
+                }
+                statusHtml += `  |  耗时: ${elapsed}ms  |  Content-Type: ${contentType}`;
+                if (parseError) {
+                    statusHtml += `  |  ⚠️ JSON 解析错误: ${parseError}`;
+                }
+                statusHtml += `  |  模式: <strong>${modeText}</strong>`;
+                statusDiv.innerHTML = statusHtml;
+
+                // 结果展示
+                let resultHtml = '';
+                if (jsonData) {
+                    const pretty = JSON.stringify(jsonData, null, 2);
+                    let summary = '';
+                    if (jsonData.response && jsonData.response.docs) {
+                        const count = jsonData.response.docs.length;
+                        summary = `📋 共找到 <strong>${count}</strong> 个栏目。`;
+                        if (count > 0) {
+                            const samples = jsonData.response.docs.slice(0, 3).map(d => d.column_name || '未命名').join('、');
+                            summary += ` 前3条示例：<span class="highlight">${samples}</span>`;
+                        } else {
+                            summary += ` <span class="empty-msg">数据为空</span>`;
+                        }
+                    } else if (jsonData.data && jsonData.data.list) {
+                        const count = jsonData.data.list.length;
+                        summary = `📋 共找到 <strong>${count}</strong> 条数据 (来自 data.list)。`;
+                    } else if (jsonData.error) {
+                        summary = `⚠️ 服务端返回错误: ${jsonData.error.message || JSON.stringify(jsonData.error)}`;
+                    } else {
+                        summary = `📊 响应结构：${Object.keys(jsonData).join(', ')}`;
+                    }
+                    resultHtml = `<div class="summary">${summary}</div>\n<pre>${pretty}</pre>`;
+                } else if (rawText) {
+                    const preview = rawText.length > 500 ? rawText.slice(0, 500) + '...\n(已截断)' : rawText;
+                    resultHtml = `<div class="error">⚠️ 响应不是 JSON，原始内容（部分）:</div>\n<pre>${escapeHtml(preview)}</pre>`;
+                } else {
+                    resultHtml = `<span class="empty-msg">⚠️ 服务器返回空内容</span>`;
+                }
+                resultDiv.innerHTML = resultHtml;
+
+            } catch (error) {
+                // 网络错误或跨域
+                statusDiv.innerHTML = `<span class="err">❌ 请求异常: ${error.message}</span>`;
+                let hint = '';
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    hint = '（很可能是跨域拦截，请尝试使用「CORS 代理」模式）';
+                }
+                resultDiv.innerHTML = `<div class="error">💥 网络错误或跨域拦截。${hint}</div>`;
+                console.error('测试请求异常:', error);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🔄 重新测试';
+            }
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // 可选：页面加载后自动测试直连（仅用于演示，用户可手动点击）
+        // setTimeout(() => testBtn.click(), 300);
     })();
 </script>
 </body>
